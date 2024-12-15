@@ -7,26 +7,85 @@ const app = express();
 const UserModel = require("./models/user");
 
 app.use(express.json());
-app.post("/signup", async (req, res) => {
-  console.log(req.body);
-  //   const user = new UserModel({
-  //     firstName: "John",
-  //     lastName: "Doe",
-  //     emailId: "john.doe@example.com",
-  //     password: "password123",
-  //     age: 30,
-  //     gender: "Male",
-  //   });
 
-  const user = new UserModel(req.body)
+app.get("/users", async (req, res) => {
+  const userEmail = req.body.emailId;
 
   try {
-    await user.save();
-    res.send("User created successfully");
+    const users = await UserModel.find({});
+
+    if (users.length === 0) {
+      res.status(404).send("user not found");
+    } else {
+      res.send(users);
+    }
   } catch (err) {
-    res.status(400).send("Error in saving the data", err.message);
+    console.error(err);
+    res.status(400).send("Server Error");
   }
 });
+
+app.get("/users", async (req, res) => {
+  const userEmail = req.body.emailId;
+
+  try {
+    const users = await UserModel.findOne({ emailId: userEmail });
+
+    if (users.length === 0) {
+      res.status(400).send("error occured");
+    } else {
+      res.send(users);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server Error");
+  }
+});
+
+app.patch("/user", async (req, res) => {
+  const userId = req.body.userId;
+  const updatedUser = req.body;
+
+  try {
+    const user = await UserModel.findByIdAndUpdate(userId, updatedUser);
+
+    res.send("user updated successfully");
+  } catch (err) {
+    res.status(400).send("somethhing went wrong");
+  }
+});
+
+app.delete("/user", async (req, res) => {
+  const userId = req.body.userId;
+
+  try {
+    const user = await UserModel.findByIdAndDelete({ _id: userId });
+
+    res.send("user deleted successfully");
+  } catch (err) {
+    res.status(400).send("somethhing went wrong");
+  }
+}),
+  app.post("/signup", async (req, res) => {
+    console.log(req.body);
+    //   const user = new UserModel({
+    //     firstName: "John",
+    //     lastName: "Doe",
+    //     emailId: "john.doe@example.com",
+    //     password: "password123",
+    //     age: 30,
+    //     gender: "Male",
+    //   });
+
+    const user = new UserModel(req.body);
+
+    try {
+      await user.save();
+      res.send("User created successfully");
+    } catch (err) {
+      res.status(400).send("Error in saving the data", err.message);
+    }
+  });
 
 // app.get('/', (req, res) => {
 //     res.send('Hello World!')
