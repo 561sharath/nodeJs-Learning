@@ -98,6 +98,9 @@ app.delete("/user", async (req, res) => {
 // app.get('/test', (req, res) => {
 //     res.send('testing again')
 // })
+
+
+
 connectDB()
   .then(() => {
     console.log("successfully connected to database");
