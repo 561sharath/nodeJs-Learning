@@ -101,6 +101,8 @@ app.delete("/user", async (req, res) => {
 
 
 
+
+
 connectDB()
   .then(() => {
     console.log("successfully connected to database");
