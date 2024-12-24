@@ -4,8 +4,13 @@ const UserModel = require("./models/user");
 const app = express();
 const { validateSignUpData } = require("./utils/validation");
 const bcrypt = require("bcrypt");
+const cookieParser = require("cookie-parser")
+const jwt = require("jsonwebtoken")
+
+const {userAuth} = require("./middlewares/auth")
 // Middleware to parse JSON request body
 app.use(express.json());
+app.use(cookieParser())
 
 // Route to get all users
 app.get("/users", async (req, res) => {
@@ -118,28 +123,56 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-app.post("/login", async(req,res) => {
-  try{
+app.post("/login", async (req, res) => {
+  try {
 
-    const {emailId, password} = req.body
+    const { emailId, password } = req.body
 
-    const user = await UserModel.findOne({emailId: emailId})
+    const user = await UserModel.findOne({ emailId: emailId })
 
-    if (!user){
+    if (!user) {
       throw new Error("User not found")
     }
-    const isPasswordValid =  await bcrypt.compare(password, user.password)
+    const isPasswordValid = await bcrypt.compare(password, user.password)
 
-    if (isPasswordValid){
+    if (isPasswordValid) {
+
+      const token = await jwt.sign({ _id: user._id }, "Sharath@12345")
+
+      console.log(token)
+
+      res.cookie("token", token)
       res.send("Login successful")
-    }else{
+    } else {
       throw new Error("user not found")
     }
 
-  }catch(err){
+  } catch (err) {
     console.error(err)
-    res.status(400).json({message: "Error logging in", error: err.message})
+    res.status(400).json({ message: "Error logging in", error: err.message })
   }
+})
+
+app.get('/profile', userAuth, async (req, res) => {
+
+  try {
+
+    const user = req.user
+
+    if(!user){
+      throw new Error("User not found")
+    }
+
+
+    res.send(user)
+
+  } catch (err) {
+    console.error(err)
+    res.status(400).json({ message: "Error fetching profile", error: err.message })
+  }
+
+
+
 })
 
 // Connect to the database and start the server
