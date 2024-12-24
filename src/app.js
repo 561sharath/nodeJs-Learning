@@ -2,7 +2,8 @@ const express = require("express");
 const connectDB = require("./config/database");
 const UserModel = require("./models/user");
 const app = express();
-
+const { validateSignUpData } = require("./utils/validation");
+const bcrypt = require("bcrypt");
 // Middleware to parse JSON request body
 app.use(express.json());
 
@@ -89,12 +90,26 @@ app.delete("/user/:userId", async (req, res) => {
 
 // Route to register a new user
 app.post("/signup", async (req, res) => {
-  const userData = req.body;
-
-  // Create a new user instance
-  const user = new UserModel(userData);
-
+  // const userData = req.body;
   try {
+    validateSignUpData(req);
+
+    const { firstName, lastName, emailId, password } = req.body
+
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+
+    // Create a new user instance
+    const user = new UserModel({
+      firstName,
+      lastName,
+      emailId,
+      password: hashedPassword,
+    }
+
+    );
+
+
     await user.save();
     res.status(201).json({ message: "User created successfully", user });
   } catch (err) {
@@ -102,6 +117,30 @@ app.post("/signup", async (req, res) => {
     res.status(400).json({ message: "Error saving user data", error: err.message });
   }
 });
+
+app.post("/login", async(req,res) => {
+  try{
+
+    const {emailId, password} = req.body
+
+    const user = await UserModel.findOne({emailId: emailId})
+
+    if (!user){
+      throw new Error("User not found")
+    }
+    const isPasswordValid =  await bcrypt.compare(password, user.password)
+
+    if (isPasswordValid){
+      res.send("Login successful")
+    }else{
+      throw new Error("user not found")
+    }
+
+  }catch(err){
+    console.error(err)
+    res.status(400).json({message: "Error logging in", error: err.message})
+  }
+})
 
 // Connect to the database and start the server
 connectDB()
