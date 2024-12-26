@@ -55,4 +55,52 @@ userRouter.get("/user/connection", userAuth, async (req, res) => {
   }
 });
 
+userRouter.get("/feed", userAuth, async (req, res) => {
+  try {
+    const loggedInUser = req.user;
+
+    const page = parseInt(req.query.page) || 1;
+
+    let limit = parseInt(req.query.limit) || 10;
+
+    limit = limit > 50 ? 50 : limit;
+
+    const connectionRequests = await ConnectionRequest.find({
+      $or: [{ fromUserId: loggedInUser._id }, { toUserId: loggedInUser._id }],
+    }).select("fromUserId toUserId");
+
+    const hideUsersFromFeed = new set();
+
+    connectionRequests.forEach((request) => {
+      hideUsersFromFeed.add(request.fromUserId);
+      hideUsersFromFeed.add(request.toUserId);
+    });
+
+    hideUsersFromFeed.add(loggedInUser._id);
+
+    const users = await UserModel.find({
+      $and: [
+        {
+          _id: {
+            $nin: Array.from(hideUsersFromFeed),
+          },
+        },
+        {
+          _id: {
+            $ne: loggedInUser._id,
+          },
+        },
+      ],
+    })
+      .select("firstName lastName about skills photoUrl")
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.send(users);
+  } catch (err) {
+    console.error(err);
+    res.status(400).send("Internal Server Error " + err);
+  }
+});
+
 module.exports = userRouter;
